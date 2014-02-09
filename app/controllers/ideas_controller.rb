@@ -1,4 +1,7 @@
 class IdeasController < ApplicationController
+  respond_to :html, except: [:update, :upvote]
+  respond_to :json, only: [:update, :upvote]
+  
   def index
     @ideas = Idea.all
   end
@@ -14,25 +17,17 @@ class IdeasController < ApplicationController
     else
       render "new"
     end
-    
   end
 
   def upvote
     @idea = Idea.find(params[:id])
-
     @idea.upvote!
-    respond_to do |format|
-      format.json { render json: { votes: @idea.votes } }
-    end
+    render json: {votes: @idea.votes}
   end
   
   def update
   	@idea = Idea.find(params[:id])
   	@idea.update_attributes(params[:idea])
-
-  	respond_to do |format|
-  		format.html { redirect_to action: "index" }
-  		format.js
-  	end
+    respond_with @idea
   end
 end

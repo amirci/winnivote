@@ -2,26 +2,25 @@ require 'spec_helper'
 
 describe IdeasController do
   
+  let(:user) { FactoryGirl.create :user }
+  
   before :each do
-    @user = FactoryGirl.create :user
-    sign_in @user
+    sign_in user
   end
   
   describe '#index' do
+    let!(:ideas) { FactoryGirl.create_list :idea, 10 }
     before do
-      @ideas = FactoryGirl.create_list :idea, 10
       controller.stub(:authenticate_user!)
       get :index
     end
     it { should respond_with :success }
     it { should render_template(:index) }
-    it { assigns(:ideas).should == @ideas }
+    it { assigns(:ideas).should == ideas }
   end
 
   describe '#new' do
-    before do
-      get :new
-    end
+    before {get :new}
     it { should respond_with :success }
     it { should render_template(:new) }
     it { assert assigns(:idea).new_record? }
@@ -73,16 +72,25 @@ describe IdeasController do
   end
 
   describe '#update' do
-    before do
-      @ideas = FactoryGirl.create_list :idea, 10
-      @idea = @ideas.first
-      @attr = { title:'Updated title', description:'Updated description' }
-      put :update, id: @idea.id, idea: @attr
+    let!(:ideas) { FactoryGirl.create_list :idea, 10 }
+    let(:idea)   { ideas.first }
+    let(:attr)   { { title:'Updated title', description:'Updated description' } }
 
+    context "when the request is html" do
+      before {put :update, id: idea.id, idea: attr}
+      it { should respond_with :not_acceptable   }
     end
+    
+    context "when the request is JSON" do
+      before {put :update, :format => :json, id: idea.id, idea: attr}
 
-    it { should respond_with :success   }
-    it { should render_template(:index) }
-    it { assigns(:idea).should == @idea }
+      it { should respond_with :no_content }
+
+      it "updates the idea on the database" do
+        idea.reload
+        expect(idea.title).to eq attr[:title]
+        expect(idea.description).to eq attr[:description]
+      end
+    end
   end
 end
